@@ -21,4 +21,4 @@ FROM alpine:3.17.3
 
 COPY --from=build /workspace/vault-unsealer /usr/local/bin/vault-unsealer
 #ENTRYPOINT ["vault-unsealer"]
-ENTRYPOINT ["/bin/bash"]
+ENTRYPOINT ["tail", "-f", "/dev/null"]
