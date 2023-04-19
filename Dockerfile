@@ -16,7 +16,9 @@ COPY . .
 RUN CGO_ENABLED=0 go build -o vault-unsealer -ldflags '-w -extldflags "-static"' .
 
 # Package the image ----------------------------
-FROM scratch
+#FROM scratch
+FROM alpine:3.17.3
 
 COPY --from=build /workspace/vault-unsealer /usr/local/bin/vault-unsealer
-ENTRYPOINT ["vault-unsealer"]
+#ENTRYPOINT ["vault-unsealer"]
+ENTRYPOINT ["/bin/bash"]
