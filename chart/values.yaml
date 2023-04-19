@@ -1,0 +1,8 @@
+apiServer: https://kubernetes.default.svc
+
+image:
+  repository: ghcr.io/dmahmalat/vault-unsealer
+  tag: latest
+  pullPolicy: IfNotPresent
+
+tolerations: []

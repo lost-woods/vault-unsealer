@@ -1,0 +1,21 @@
+apiVersion: v2
+type: application
+name: vault-unsealer
+description: Allow vault to unseal itself
+
+version: 0.0.0-template
+appVersion: 0.0.0-template
+
+icon: https://www.datocms-assets.com/2885/1620155128-brandhcvaultverticalcolor.svg
+home: https://ghcr.io/dmahmalat/charts
+
+sources:
+- https://github.com/dmahmalat/vault-unsealer
+
+keywords:
+- vault
+- unseal
+
+maintainers:
+- name: dmahmalat
+  email: dany@mahmalat.com
