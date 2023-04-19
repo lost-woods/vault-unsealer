@@ -55,18 +55,18 @@ jobs:
 
       # Package and publish the Helm chart except on PR
       - name: Package and push Helm Chart
-      if: github.event_name != 'pull_request'
-      run: |
-        cd chart
-        CHART_VERSION="${GITHUB_REF_NAME#"v"}" # remove the leading "v"
-        sed -i "s|0.0.0-template|$CHART_VERSION|" Chart.yaml
-        REPO_OWNER=`echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]'`
-        # create chart package
-        helm package .
-        # Get packed chart file name
-        PKG_NAME=`ls *.tgz`
-        # push to GHCR
-        helm push ${PKG_NAME} oci://${REGISTRY}/${REPO_OWNER}/charts
+        if: github.event_name != 'pull_request'
+        run: |
+          cd chart
+          CHART_VERSION="${GITHUB_REF_NAME#"v"}" # remove the leading "v"
+          sed -i "s|0.0.0-template|$CHART_VERSION|" Chart.yaml
+          REPO_OWNER=`echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]'`
+          # create chart package
+          helm package .
+          # Get packed chart file name
+          PKG_NAME=`ls *.tgz`
+          # push to GHCR
+          helm push ${PKG_NAME} oci://${REGISTRY}/${REPO_OWNER}/charts
 
       # Extract metadata (tags, labels) for Docker
       # https://github.com/docker/metadata-action
