@@ -73,7 +73,7 @@ func main() {
 		}
 		defer resp.Body.Close()
 
-		// Print the body to console for now
-		println(resp.Body)
+		// Print a success message
+		log.Info("Successfully sent unseal key to all vault instaces.")
 	}
 }
