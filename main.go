@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -22,6 +23,21 @@ var (
 	vaultName = "vault"
 	vaultPort = "8200"
 )
+
+type VaultStatus struct {
+	Type           string `json:"type"`
+	Initialized    bool   `json:"initialized"`
+	Sealed         bool   `json:"sealed"`
+	KeysThreshold  int    `json:"t"`
+	KeysIssued     int    `json:"n"`
+	UnsealProgress int    `json:"progress"`
+	Nonce          string `json:"nonce"`
+	Version        string `json:"version"`
+	BuildDate      string `json:"build_date"`
+	Migration      bool   `json:"migration"`
+	RecoverySeal   bool   `json:"recovery_seal"`
+	StorageType    string `json:"storage_type"`
+}
 
 func sendRequest(method string, ip string, endpoint string, body io.Reader) (string, error) {
 	req, err := http.NewRequest(method, fmt.Sprintf("http://%s:%s/%s", ip, vaultPort, endpoint), body)
@@ -92,7 +108,13 @@ func main() {
 			log.Fatalf("Error fetching seal status: %s", err)
 		}
 
-		log.Infof("Response: %s", body)
+		var status VaultStatus
+		err = json.Unmarshal([]byte(body), &status)
+		if err != nil {
+			log.Fatalf("Error parsing response body: %s", err)
+		}
+
+		log.Infof("Response: %s - %s", status.StorageType, status.Sealed)
 
 		// Attempt to unseal with the key we have
 		var jsonStr = []byte(fmt.Sprintf(`{"key": "%s"}`, vaultUnsealKey))
