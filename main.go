@@ -74,6 +74,9 @@ func main() {
 		defer resp.Body.Close()
 
 		// Print a success message
-		log.Info("Successfully sent unseal key to all vault instaces.")
+		log.Infof("Sent unseal request to instance at IP %s.", address.IP)
 	}
+
+	// Print a success message
+	log.Info("Successfully sent unseal key to all vault instaces.")
 }
