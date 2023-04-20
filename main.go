@@ -23,7 +23,7 @@ var (
 	vaultPort = "8200"
 )
 
-func sendRequest(method string, ip string, endpoint string, body io.Reader) (*http.Response, error) {
+func sendRequest(method string, ip string, endpoint string, body io.Reader) (string, error) {
 	req, err := http.NewRequest(method, fmt.Sprintf("http://%s:%s/%s", ip, vaultPort, endpoint), body)
 	if err != nil {
 		log.Fatalf("Error preparing request: %s", err)
@@ -36,8 +36,14 @@ func sendRequest(method string, ip string, endpoint string, body io.Reader) (*ht
 		log.Fatalf("Error performing request: %s", err)
 	}
 
+	// Return response body as string
+	out, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Fatalf("Error reading response body: %s", err)
+	}
+
 	defer resp.Body.Close()
-	return resp, nil
+	return string(out), nil
 }
 
 func main() {
@@ -81,17 +87,12 @@ func main() {
 	// Get the addresses associated to the endpoints
 	for _, address := range endpoint.Subsets[0].Addresses {
 		// For each vault instance, check if vault is sealed
-		resp, err := sendRequest("GET", address.IP, "v1/sys/seal-status", nil)
+		body, err := sendRequest("GET", address.IP, "v1/sys/seal-status", nil)
 		if err != nil {
 			log.Fatalf("Error fetching seal status: %s", err)
 		}
 
-		body, err := io.ReadAll(resp.Body)
-		if err != nil {
-			log.Fatalf("Error reading response body: %s", err)
-		}
-
-		log.Infof("Response: %s", string(body))
+		log.Infof("Response: %s", body)
 
 		// Attempt to unseal with the key we have
 		var jsonStr = []byte(fmt.Sprintf(`{"key": "%s"}`, vaultUnsealKey))
