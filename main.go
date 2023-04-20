@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 
@@ -13,16 +14,36 @@ import (
 	"k8s.io/client-go/rest"
 )
 
-var zapLogger, _ = zap.NewProduction()
+var (
+	zapLogger, _ = zap.NewProduction()
+	log          = zapLogger.Sugar()
+
+	apiServer = os.Getenv("KUBERNETES_APISERVER")
+	vaultName = "vault"
+	vaultPort = "8200"
+)
+
+func sendRequest(method string, ip string, endpoint string, body io.Reader) (*http.Response, error) {
+	req, err := http.NewRequest(method, fmt.Sprintf("http://%s:%s/%s", ip, vaultPort, endpoint), body)
+	if err != nil {
+		log.Fatalf("Error preparing request: %s", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		log.Fatalf("Error performing request: %s", err)
+	}
+
+	defer resp.Body.Close()
+	return resp, nil
+}
 
 func main() {
-	log := zapLogger.Sugar()
-
 	// Init variables
 	// Hard-coded key will be fetched from elsewhere
-	vaultPodName := "vault"
 	vaultUnsealKey := "3J2+sl2WNO625wDLhQbjnXj0s3qqYS39BVcuqnmweKyf"
-	apiServer := os.Getenv("KUBERNETES_APISERVER")
 
 	// Get the serviceaccount token
 	bToken, err := os.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/token")
@@ -52,26 +73,32 @@ func main() {
 	namespace := string(bNamespace)
 
 	// Get all endpoints for vault
-	endpoint, err := clientset.CoreV1().Endpoints(namespace).Get(context.Background(), vaultPodName, metav1.GetOptions{})
+	endpoint, err := clientset.CoreV1().Endpoints(namespace).Get(context.Background(), vaultName, metav1.GetOptions{})
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	// Get the addresses associated to the endpoints
 	for _, address := range endpoint.Subsets[0].Addresses {
-		// For each vault instance, attempt to unseal with the key we have
-		var jsonStr = []byte(fmt.Sprintf(`{"key": "%s"}`, vaultUnsealKey))
-		req, err := http.NewRequest("POST", fmt.Sprintf("http://%s:8200/v1/sys/unseal", address.IP), bytes.NewBuffer(jsonStr))
+		// For each vault instance, check if vault is sealed
+		resp, err := sendRequest("GET", address.IP, "v1/sys/seal-status", nil)
 		if err != nil {
-			log.Fatalf("Error unsealing: %s", err)
+			log.Fatalf("Error fetching seal status: %s", err)
 		}
-		req.Header.Set("Content-Type", "application/json")
 
-		resp, err := http.DefaultClient.Do(req)
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			log.Fatalf("Error reading response body: %s", err)
+		}
+
+		log.Infof("Response: %s", string(body))
+
+		// Attempt to unseal with the key we have
+		var jsonStr = []byte(fmt.Sprintf(`{"key": "%s"}`, vaultUnsealKey))
+		_, err = sendRequest("POST", address.IP, "v1/sys/unseal", bytes.NewBuffer(jsonStr))
 		if err != nil {
 			log.Fatalf("Error unsealing: %s", err)
 		}
-		defer resp.Body.Close()
 
 		// Print a success message
 		log.Infof("Sent unseal request to instance at IP %s.", address.IP)
