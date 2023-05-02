@@ -30,3 +30,12 @@ spec:
         env:
         - name: KUBERNETES_APISERVER
           value: {{ .Values.apiServer | quote }}
+        volumeMounts:
+        - mountPath: /vault
+          name: vault-mount
+          readOnly: true
+      volumes:
+      - name: vault-mount
+        hostPath: 
+          path: /var/run/vault
+          type: Directory
