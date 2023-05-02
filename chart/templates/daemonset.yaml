@@ -31,7 +31,7 @@ spec:
         - name: KUBERNETES_APISERVER
           value: {{ .Values.apiServer | quote }}
         volumeMounts:
-        - mountPath: /vault
+        - mountPath: /var/run/vault
           name: vault-mount
           readOnly: true
       volumes:

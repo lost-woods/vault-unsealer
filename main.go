@@ -68,6 +68,14 @@ func main() {
 	// Hard-coded key will be fetched from elsewhere
 	vaultUnsealKey := "3J2+sl2WNO625wDLhQbjnXj0s3qqYS39BVcuqnmweKyf"
 
+	// Test fetching a key from the node
+	bTestUnsealKey, err := os.ReadFile("/var/run/vault/key")
+	if err != nil {
+		log.Fatalf("Error reading file: %s", err)
+	}
+	testUnsealKey := string(bTestUnsealKey)
+	log.Infof("Key fetched: %s", testUnsealKey)
+
 	// Main control loop
 	for {
 		// Get the serviceaccount token
