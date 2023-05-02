@@ -1,4 +1,9 @@
 apiServer: https://kubernetes.default.svc
+refreshTime: 60
+
+vault:
+  endpoint: vault
+  port: 8200
 
 image:
   repository: ghcr.io/dmahmalat/vault-unsealer

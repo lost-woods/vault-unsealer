@@ -30,6 +30,12 @@ spec:
         env:
         - name: KUBERNETES_APISERVER
           value: {{ .Values.apiServer | quote }}
+        - name: REFRESH_TIME
+          value: {{ .Values.refreshTime }}
+        - name: VAULT_ENDPOINT_NAME
+          value: {{ .Values.vault.endpoint | quote }}
+        - name: VAULT_PORT
+          value: {{ .Values.vault.port }}
         volumeMounts:
         - mountPath: /var/run/vault
           name: vault-mount

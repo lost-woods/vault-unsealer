@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strconv"
 	"time"
 
 	"go.uber.org/zap"
@@ -21,9 +22,9 @@ var (
 	log          = zapLogger.Sugar()
 
 	apiServer     = os.Getenv("KUBERNETES_APISERVER")
-	vaultName     = "vault"
-	vaultPort     = "8200"
-	secondsToWait = 60
+	vaultName     = os.Getenv("VAULT_ENDPOINT_NAME")
+	vaultPort     = getEnvInt("VAULT_PORT")
+	secondsToWait = getEnvInt("REFRESH_TIME")
 )
 
 type VaultStatus struct {
@@ -41,8 +42,30 @@ type VaultStatus struct {
 	StorageType    string `json:"storage_type"`
 }
 
+func getEnvInt(key string) int {
+	envStr := os.Getenv(key)
+
+	env, err := strconv.Atoi(envStr)
+	if err != nil {
+		log.Fatalf("Error parsing env variable %s: %s", key, err)
+		return 0
+	}
+
+	return env
+}
+
+func readFile(path string) string {
+	fileBytes, err := os.ReadFile(path)
+	if err != nil {
+		log.Fatalf("Error reading file: %s", err)
+		return ""
+	}
+
+	return string(fileBytes)
+}
+
 func sendRequest(method string, ip string, endpoint string, body io.Reader) ([]byte, error) {
-	req, err := http.NewRequest(method, fmt.Sprintf("http://%s:%s/%s", ip, vaultPort, endpoint), body)
+	req, err := http.NewRequest(method, fmt.Sprintf("http://%s:%d/%s", ip, vaultPort, endpoint), body)
 	if err != nil {
 		log.Fatalf("Error preparing request: %s", err)
 	}
@@ -64,47 +87,26 @@ func sendRequest(method string, ip string, endpoint string, body io.Reader) ([]b
 }
 
 func main() {
-	// Init variables
-	// Hard-coded key will be fetched from elsewhere
-	vaultUnsealKey := "3J2+sl2WNO625wDLhQbjnXj0s3qqYS39BVcuqnmweKyf"
+	// Variables
+	vaultUnsealKey := readFile("/var/run/vault/key")
+	namespace := readFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
+	token := readFile("/var/run/secrets/kubernetes.io/serviceaccount/token")
 
-	// Test fetching a key from the node
-	bTestUnsealKey, err := os.ReadFile("/var/run/vault/key")
-	if err != nil {
-		log.Fatalf("Error reading file: %s", err)
+	// Create a new Kubernetes clientset using the serviceaccount token
+	config := &rest.Config{
+		Host:        apiServer,
+		BearerToken: token,
+		TLSClientConfig: rest.TLSClientConfig{
+			Insecure: true,
+		},
 	}
-	testUnsealKey := string(bTestUnsealKey)
-	log.Infof("Key fetched: %s", testUnsealKey)
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	// Main control loop
 	for {
-		// Get the serviceaccount token
-		bToken, err := os.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/token")
-		if err != nil {
-			log.Fatalf("Error reading file: %s", err)
-		}
-		token := string(bToken)
-
-		// Create a new Kubernetes clientset using the serviceaccount token
-		config := &rest.Config{
-			Host:        apiServer,
-			BearerToken: token,
-			TLSClientConfig: rest.TLSClientConfig{
-				Insecure: true,
-			},
-		}
-		clientset, err := kubernetes.NewForConfig(config)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		// Get the namespace where this container is running from
-		bNamespace, err := os.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
-		if err != nil {
-			log.Fatalf("Error reading file: %s", err)
-		}
-		namespace := string(bNamespace)
-
 		// Get all endpoints for vault
 		endpoint, err := clientset.CoreV1().Endpoints(namespace).Get(context.Background(), vaultName, metav1.GetOptions{})
 		if err != nil {
