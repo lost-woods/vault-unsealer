@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"go.uber.org/zap"
@@ -61,7 +62,7 @@ func readFile(path string) string {
 		return ""
 	}
 
-	return string(fileBytes)
+	return strings.TrimSuffix(string(fileBytes), "\n")
 }
 
 func sendRequest(method string, ip string, endpoint string, body io.Reader) ([]byte, error) {
