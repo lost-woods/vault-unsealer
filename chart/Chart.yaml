@@ -7,10 +7,10 @@ version: 0.0.0-template
 appVersion: 0.0.0-template
 
 icon: https://www.datocms-assets.com/2885/1620155128-brandhcvaultverticalcolor.svg
-home: https://ghcr.io/dmahmalat/charts
+home: https://ghcr.io/lost-woods/charts
 
 sources:
-- https://github.com/dmahmalat/vault-unsealer
+- https://github.com/lost-woods/vault-unsealer
 
 keywords:
 - vault
