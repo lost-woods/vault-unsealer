@@ -6,7 +6,7 @@ vault:
   port: 8200
 
 image:
-  repository: ghcr.io/dmahmalat/vault-unsealer
+  repository: ghcr.io/lost-woods/vault-unsealer
   tag: latest
   pullPolicy: IfNotPresent
 

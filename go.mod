@@ -1,4 +1,4 @@
-module github.com/dmahmalat/vault-unsealer
+module github.com/lost-woods/vault-unsealer
 
 go 1.19
 
